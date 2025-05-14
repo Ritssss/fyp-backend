@@ -1,0 +1,46 @@
+<svg width="500" height="600" viewBox="0 0 500 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Chef illustration -->
+  <rect x="0" y="0" width="500" height="600" fill="#FEBBBA" opacity="0.2" />
+  
+  <!-- Face -->
+  <rect x="180" y="100" width="140" height="180" rx="70" fill="#FFD5B3" />
+  
+  <!-- Hair -->
+  <path d="M180 130C170 120 160 100 170 80C180 60 200 50 230 60C260 50 280 60 290 80C300 100 290 120 280 130" fill="#1A237E" />
+  
+  <!-- Chef hat -->
+  <rect x="170" y="50" width="160" height="50" rx="25" fill="white" />
+  <rect x="190" y="30" width="120" height="40" rx="20" fill="white" />
+  
+  <!-- Eyes -->
+  <circle cx="220" cy="150" r="10" fill="#333333" />
+  <circle cx="280" cy="150" r="10" fill="#333333" />
+  
+  <!-- Mouth -->
+  <path d="M230 190C240 200 260 200 270 190" stroke="#333333" strokeWidth="3" fill="none" />
+  
+  <!-- Chef uniform -->
+  <rect x="150" y="280" width="200" height="220" rx="20" fill="#FFA726" />
+  <rect x="180" y="280" width="140" height="220" fill="#FFA726" />
+  
+  <!-- Apron -->
+  <rect x="180" y="310" width="140" height="190" fill="white" />
+  <path d="M180 310C200 320 220 330 250 330C280 330 300 320 320 310" stroke="#DDDDDD" strokeWidth="2" fill="none" />
+  
+  <!-- Arms -->
+  <rect x="100" y="300" width="50" height="150" rx="25" fill="#FFD5B3" />
+  <rect x="350" y="300" width="50" height="150" rx="25" fill="#FFD5B3" />
+  
+  <!-- Vegetables -->
+  <circle cx="120" y="270" r="20" fill="#4CAF50" />
+  <circle cx="150" y="260" r="15" fill="#8BC34A" />
+  <circle cx="90" y="260" r="18" fill="#7CB342" />
+  
+  <!-- Pot -->
+  <rect x="350" y="200" width="100" height="80" rx="10" fill="#2196F3" />
+  <rect x="340" y="200" width="120" height="10" rx="5" fill="#1565C0" />
+  
+  <!-- Cooking steam -->
+  <path d="M380 190C385 180 390 170 400 170C410 170 415 180 420 190" stroke="#EEEEEE" strokeWidth="3" fill="none" />
+  <path d="M370 180C375 170 380 160 390 160C400 160 405 170 410 180" stroke="#EEEEEE" strokeWidth="3" fill="none" />
+</svg> 
