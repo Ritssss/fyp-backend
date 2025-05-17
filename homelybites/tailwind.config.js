@@ -5,7 +5,13 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        amaranth: ['Amaranth', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 }
+
+
