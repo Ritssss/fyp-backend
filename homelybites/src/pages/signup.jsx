@@ -160,7 +160,7 @@ const SignUp = () => {
             <div className="w-full md:w-1/2 flex flex-col justify-start pt-12 px-8">
                 <div className="w-full max-w-md mx-auto">
                     <div className="flex flex-col items-center mb-12">
-                        <img src="/src/img/logo-fyp.svg" alt="HomelyBites Logo" className="w-32 h-32" />
+                        <img src="/Images/logo/logo-fyp.svg" alt="HomelyBites Logo" className="w-32 h-32" />
                         <h2 className="text-2xl font-bold font-amaranth mt-6 text-gray-800">Get Started</h2>
                     </div>
                     

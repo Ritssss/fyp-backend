@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      colors: {
+        accent: "#FC7D7D",
+      },
       fontFamily: {
         amaranth: ['Amaranth', 'sans-serif'],
       },
