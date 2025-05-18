@@ -9,33 +9,153 @@ const SignUp = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [showSuccessToast, setShowSuccessToast] = useState(false);
     const navigate = useNavigate();
 
-    const handleFirstNameChange = (e) => setFirstName(e.target.value);
-    const handleLastNameChange = (e) => setLastName(e.target.value);
-    const handleEmailChange = (e) => setEmail(e.target.value);
-    const handlePasswordChange = (e) => setPassword(e.target.value);
-    const handleConfirmPasswordChange = (e) => setConfirmPassword(e.target.value);
+    const handleFirstNameChange = (e) => {
+        setFirstName(e.target.value);
+        setError('');
+    };
+    
+    const handleLastNameChange = (e) => {
+        setLastName(e.target.value);
+        setError('');
+    };
+    
+    const handleEmailChange = (e) => {
+        setEmail(e.target.value);
+        setError('');
+    };
+    
+    const handlePasswordChange = (e) => {
+        setPassword(e.target.value);
+        setError('');
+    };
+    
+    const handleConfirmPasswordChange = (e) => {
+        setConfirmPassword(e.target.value);
+        setError('');
+    };
     
     const togglePasswordVisibility = () => setShowPassword(!showPassword);
     const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
-    const handleSignUp = (e) => {
+    const handleSignUp = async (e) => {
         e.preventDefault();
-        // Sign up logic will be implemented here
-        console.log('Sign up attempt with:', { firstName, lastName, email, password, confirmPassword });
+        setLoading(true);
+        setError('');
         
-        // After successful signup, you can redirect to login
-        // navigate('/login');
+        // Basic validation
+        if (!firstName || !lastName || !email || !password || !confirmPassword) {
+            setError('Please fill in all fields');
+            setLoading(false);
+            return;
+        }
+        
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setError('Please enter a valid email address');
+            setLoading(false);
+            return;
+        }
+        
+        // Password validation
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters long');
+            setLoading(false);
+            return;
+        }
+        
+        // Password match validation
+        if (password !== confirmPassword) {
+            setError('Passwords do not match');
+            setLoading(false);
+            return;
+        }
+        
+        try {
+            // Simulate API call with localStorage
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            
+            // Check if email already exists
+            if (users.some(user => user.email === email)) {
+                setError('Email is already registered');
+                setLoading(false);
+                return;
+            }
+            
+            // Create new user
+            const newUser = {
+                firstName,
+                lastName,
+                email,
+                password,
+                createdAt: new Date().toISOString()
+            };
+            
+            // Add to users array
+            users.push(newUser);
+            
+            // Artificial delay to simulate network request
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            // Save updated users array
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Show success toast
+            setShowSuccessToast(true);
+            
+            // Auto hide toast after 5 seconds
+            setTimeout(() => {
+                setShowSuccessToast(false);
+            }, 5000);
+            
+            // Redirect to login after short delay with query parameter
+            setTimeout(() => {
+                navigate('/login?registered=true');
+            }, 1500);
+            
+        } catch (err) {
+            setError('Registration failed. Please try again');
+            console.error('Registration error:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const navigateToLogin = () => {
-        // Navigate to login page
         navigate('/login');
     };
 
     return (
-        <div className="flex h-screen w-full bg-white">
+        <div className="flex h-screen w-full bg-white relative">
+            {/* Success Toast Notification - with pink theme (#FC7D7D) */}
+            {showSuccessToast && (
+                <div className="fixed top-4 right-4 bg-white border-l-4 p-4 rounded shadow-md z-50 animate-fade-in-down flex items-center" style={{ borderColor: '#FC7D7D' }}>
+                    <div className="mr-2">
+                        <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#FC7D7D">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p className="font-bold" style={{ color: '#333333' }}>Success!</p>
+                        <p style={{ color: '#666666' }}>Registration successful!</p>
+                    </div>
+                    <button 
+                        onClick={() => setShowSuccessToast(false)}
+                        className="ml-4 hover:opacity-80"
+                        style={{ color: '#FC7D7D' }}
+                    >
+                        <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            )}
+            
             {/* Left side - SignUp Form */}
             <div className="w-full md:w-1/2 flex flex-col justify-start pt-12 px-8">
                 <div className="w-full max-w-md mx-auto">
@@ -43,6 +163,12 @@ const SignUp = () => {
                         <img src="/src/img/logo-fyp.svg" alt="HomelyBites Logo" className="w-32 h-32" />
                         <h2 className="text-2xl font-bold font-amaranth mt-6 text-gray-800">Get Started</h2>
                     </div>
+                    
+                    {error && (
+                        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+                            {error}
+                        </div>
+                    )}
                     
                     <form onSubmit={handleSignUp} className="w-full">
                         <div className="flex gap-4 mb-6">
@@ -139,8 +265,9 @@ const SignUp = () => {
                             type="submit" 
                             style={{ backgroundColor: '#FC7D7D' }}
                             className="w-full py-3 text-white rounded-full hover:opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-300"
+                            disabled={loading}
                         >
-                            Sign Up
+                            {loading ? 'Creating Account...' : 'Sign Up'}
                         </button>
                     </form>
                     
@@ -156,6 +283,23 @@ const SignUp = () => {
                     </div>
                 </div>
             </div>
+            
+            {/* Add custom animation for toast */}
+            <style jsx>{`
+                @keyframes fadeInDown {
+                    from {
+                        opacity: 0;
+                        transform: translate3d(0, -20px, 0);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translate3d(0, 0, 0);
+                    }
+                }
+                .animate-fade-in-down {
+                    animation: fadeInDown 0.5s ease-out;
+                }
+            `}</style>
             
             {/* Right side - Chef Illustration */}
             <div className="hidden md:block md:w-1/2 bg-pink-200">
