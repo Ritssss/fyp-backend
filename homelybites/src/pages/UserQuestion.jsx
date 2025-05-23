@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
@@ -13,103 +13,213 @@ const allergyOptions = [
 const dislikeOptions = [
   "Lactose Intolerance",
   "Nut Allergy",
-  "Gluten Intolerance",
+  "Gluten Intolerance",  
   "Shellfish Allergy",
 ];
 
 const UserQuestion = () => {
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    dietary: [],
+    allergies: [],
+    dislikes: []
+  });
+  const [errors, setErrors] = useState({});
+
+  const handleCheckboxChange = (category, option) => {
+    setFormData(prev => ({
+      ...prev,
+      [category]: prev[category].includes(option)
+        ? prev[category].filter(item => item !== option)
+        : [...prev[category], option]
+    }));
+    
+    // Clear error when user makes a selection
+    if (errors[category]) {
+      setErrors(prev => ({
+        ...prev,
+        [category]: false
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (formData.dietary.length === 0) {
+      newErrors.dietary = "Please select at least one dietary preference";
+    }
+    if (formData.allergies.length === 0) {
+      newErrors.allergies = "Please select your food allergies/intolerances or check 'None'";
+    }
+    if (formData.dislikes.length === 0) {
+      newErrors.dislikes = "Please select ingredients to avoid or check 'None'";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    navigate("/"); // Navigate to the home/main page
+    if (validateForm()) {
+      navigate("/"); // Navigate to the home/main page
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f7] flex flex-col">
-      <Navbar />
-      <div className="flex justify-center items-center flex-grow px-2 md:px-0">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 max-w-2xl w-full mt-8 mb-8 relative">
-          <div className="flex">
-            <div className="w-full pr-0 md:pr-20">
-              <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center md:text-left">
+    <div className="h-screen bg-[#faf9f7] flex flex-col">
+      {/* Fixed Navbar */}
+      <div className="flex-shrink-0">
+        <Navbar />
+      </div>
+      
+      {/* Main Content Area */}
+      <div className="flex-1 flex px-4 md:px-8 overflow-hidden">
+        <div className="flex w-full max-w-6xl mx-auto gap-8">
+          {/* Left Side - Scrollable Form Section */}
+          <div className="flex-1 py-8">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 h-full overflow-y-auto">
+              <h1 className="text-1xl md:text-3xl font-bold mb-8 underline mt-0">
                 Help us get to know your taste
               </h1>
               <form className="space-y-8" onSubmit={handleSubmit}>
                 {/* Q1 */}
                 <div>
-                  <div className="mb-2 text-lg">
-                    1. Select your Dietary Preferences ?
+                  <div className="mb-4 text-lg font-medium">
+                    1. Select your Dietary Preferences *
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                     {dietaryOptions.map((option) => (
                       <label
                         key={option}
-                        className="flex items-center gap-2 text-lg"
+                        className="flex items-center gap-3 text-lg cursor-pointer"
                       >
-                        <input type="checkbox" className="accent-accent w-5 h-5" />
+                        <input 
+                          type="checkbox" 
+                          className="accent-accent w-5 h-5"
+                          checked={formData.dietary.includes(option)}
+                          onChange={() => handleCheckboxChange('dietary', option)}
+                        />
                         <span>{option}</span>
                       </label>
                     ))}
+                    <label className="flex items-center gap-3 text-lg cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="accent-accent w-5 h-5"
+                        checked={formData.dietary.includes('None')}
+                        onChange={() => handleCheckboxChange('dietary', 'None')}
+                      />
+                      <span>None</span>
+                    </label>
                   </div>
+                  {errors.dietary && (
+                    <p className="text-red-500 text-sm mt-2">{errors.dietary}</p>
+                  )}
                 </div>
+                
                 {/* Q2 */}
                 <div>
-                  <div className="mb-2 text-lg">
-                    2. Do you have any food allergies or intolerances ?
+                  <div className="mb-4 text-lg font-medium">
+                    2. Do you have any food allergies or intolerances? *
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                     {allergyOptions.map((option) => (
                       <label
                         key={option}
-                        className="flex items-center gap-2 text-lg"
+                        className="flex items-center gap-3 text-lg cursor-pointer"
                       >
-                        <input type="checkbox" className="accent-accent w-5 h-5" />
+                        <input 
+                          type="checkbox" 
+                          className="accent-accent w-5 h-5"
+                          checked={formData.allergies.includes(option)}
+                          onChange={() => handleCheckboxChange('allergies', option)}
+                        />
                         <span>{option}</span>
                       </label>
                     ))}
+                    <label className="flex items-center gap-3 text-lg cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="accent-accent w-5 h-5"
+                        checked={formData.allergies.includes('None')}
+                        onChange={() => handleCheckboxChange('allergies', 'None')}
+                      />
+                      <span>None</span>
+                    </label>
                   </div>
+                  {errors.allergies && (
+                    <p className="text-red-500 text-sm mt-2">{errors.allergies}</p>
+                  )}
                 </div>
+                
                 {/* Q3 */}
                 <div>
-                  <div className="mb-2 text-lg">
-                    3. Are there any ingredients you dislike or want to avoid ?
+                  <div className="mb-4 text-lg font-medium">
+                    3. Are there any ingredients you dislike or want to avoid? *
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                     {dislikeOptions.map((option) => (
                       <label
                         key={option}
-                        className="flex items-center gap-2 text-lg"
+                        className="flex items-center gap-3 text-lg cursor-pointer"
                       >
-                        <input type="checkbox" className="accent-accent w-5 h-5" />
+                        <input 
+                          type="checkbox" 
+                          className="accent-accent w-5 h-5"
+                          checked={formData.dislikes.includes(option)}
+                          onChange={() => handleCheckboxChange('dislikes', option)}
+                        />
                         <span>{option}</span>
                       </label>
                     ))}
+                    <label className="flex items-center gap-3 text-lg cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="accent-accent w-5 h-5"
+                        checked={formData.dislikes.includes('None')}
+                        onChange={() => handleCheckboxChange('dislikes', 'None')}
+                      />
+                      <span>None</span>
+                    </label>
                   </div>
+                  {errors.dislikes && (
+                    <p className="text-red-500 text-sm mt-2">{errors.dislikes}</p>
+                  )}
                 </div>
-                <div className="flex justify-center mt-6">
+
+                {/* Add more questions here as needed */}
+                
+                <div className="flex justify-center mt-8 pb-8">
                   <button
                     type="submit"
-                    className="bg-accent text-white px-8 py-2 rounded-lg text-lg shadow hover:brightness-110 transition"
+                    className="bg-accent text-white px-8 py-3 rounded-lg text-lg shadow hover:brightness-110 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Submit
                   </button>
                 </div>
               </form>
             </div>
-            <div className="hidden md:block w-1/3">
-              <div className="absolute right-8 top-1/2 transform -translate-y-1/2 w-1/3">
-                <img 
-                  src="/Images/chef-illustration.png" 
-                  alt="Chef Illustration" 
-                  className="w-full"
-                />
-              </div>
+          </div>
+          
+          {/* Right Side - Fixed Chef Illustration */}
+          <div className="hidden lg:flex flex-1 items-end">
+            <div className="w-full max-w-lg">
+              <img 
+                src="/Images/chef-illustration.jpg" 
+                alt="Chef Illustration" 
+                className="w-full h-auto object-contain opacity-90 mix-blend-multiply"
+              />
             </div>
           </div>
         </div>
       </div>
-      <Footer />
+      
+      {/* Fixed Footer */}
+      <div className="flex-shrink-0">
+        <Footer />
+      </div>
     </div>
   );
 };

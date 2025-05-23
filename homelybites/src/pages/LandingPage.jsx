@@ -29,12 +29,12 @@ const LandingPage = () => (
       </div>
 
       {/* Right: Images & Decorative Elements */}
-      <div className="relative flex-1 flex items-center justify-center w-full h-[500px] md:h-[600px]">
+      <div className="relative flex-1 flex items-center justify-center w-full h-[800px] md:h-[600px]">
         {/* Decorative Circles */}
-        <div className="absolute w-24 h-24 rounded-full bg-accent opacity-60 top-0 right-1/2 translate-x-16"></div>
-        <div className="absolute w-12 h-12 rounded-full bg-accent opacity-60 top-1/4 right-3/4"></div>
-        <div className="absolute w-14 h-14 rounded-full bg-accent opacity-60 bottom-1/4 right-1/2 translate-x-32"></div>
-        <div className="absolute w-28 h-28 rounded-full bg-accent opacity-60 bottom-0 right-1/3"></div>
+        <div className="absolute w-14 h-14 rounded-full bg-accent opacity-60 top-4 right-1/3 translate-x-16"></div>
+        <div className="absolute w-9 h-9 rounded-full bg-accent opacity-60 top-1/3 right-3/4"></div>
+        <div className="absolute w-9 h-9 rounded-full bg-accent opacity-60 bottom-1/3 right-3/4"></div>
+        <div className="absolute w-14 h-14 rounded-full bg-accent opacity-60 bottom-14 right-1/3 translate-x-16"></div>
 
         {/* Food Images - Positioned like the reference */}
         <div className="relative w-full h-full flex items-center justify-center">
@@ -42,7 +42,7 @@ const LandingPage = () => (
           <img
             src="/Images/LandingPage/Image-1.png"
             alt="Food bowl with stir fry"
-            className="absolute top-10 right-0 md:right-10 w-72 object-contain z-10"
+            className="absolute top-10 right-10 md:right-50 w-72 object-contain z-10"
           />
 
           {/* Bottom left salad bowl */}
@@ -56,7 +56,7 @@ const LandingPage = () => (
           <img
             src="/Images/LandingPage/image-4.png"
             alt="Avocado toast with egg"
-            className="absolute bottom-8 right-1/4 w-56 object-contain z-10"
+            className="absolute bottom-12 right-1/5 w-56 object-contain z-10 top-1/2"
           />
         </div>
       </div>
