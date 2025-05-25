@@ -4,6 +4,7 @@ import LandingPage from "./pages/LandingPage";
 import UserQuestion from "./pages/UserQuestion";
 import Login from "./pages/login";
 import MainPage from "./pages/MainPage";
+import UserProfile from "./pages/UserProfile";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Route path="/userquestion" element={<UserQuestion />} />
       <Route path="/LandingPage" element={<LandingPage />} />
       <Route path="/" element={<MainPage />} />
+      <Route path="/userprofile" element={<UserProfile />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
