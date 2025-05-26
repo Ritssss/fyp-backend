@@ -24,7 +24,7 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="md:block flex flex-col justify-center min-h-screen bg-gradient-to-t from-vrless to-white">
+    <div className="md:block flex flex-col justify-center min-h-screen bg-gradient-to-t from-vrless from-60% to-white">
       <Navbar />
       {/* Main Content */}
       <div className="px-9 py-9">
@@ -44,7 +44,7 @@ const ContactPage = () => {
           </p>
         </div>
         {/* Contact Section */}
-        <div className="bg-white rounded-xl py-4 max-w-[1100px] mx-auto flex">
+        <div className="bg-white rounded-xl py-4 max-w-[1000px] mx-auto flex">
           <div className="max-w-6xl mx-auto flex gap-12">
             {/* Contact Information Card */}
             <div
