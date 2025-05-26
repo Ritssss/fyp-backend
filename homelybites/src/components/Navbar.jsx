@@ -67,14 +67,17 @@ const Navbar = () => {
       {/* Menu */}
       <div className="flex-1 flex justify-center">
         <div className="flex gap-10 text-lg font-medium">
-          <Link to="/" className="hover:text-accent transition">
+          <Link to="/Home" className="hover:text-accent transition">
             Home
           </Link>
           <Link to="/about" className="hover:text-accent transition">
             About
           </Link>
-          <Link to="/categories" className="hover:text-accent transition">
-            Categories
+          <Link to="/recipe" className="hover:text-accent transition">
+            Recipe
+          </Link>
+          <Link to="/community" className="hover:text-accent transition">
+            Community
           </Link>
           <Link to="/contact" className="hover:text-accent transition">
             Contact

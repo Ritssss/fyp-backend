@@ -5,6 +5,9 @@ import UserQuestion from "./pages/UserQuestion";
 import Login from "./pages/login";
 import MainPage from "./pages/MainPage";
 import UserProfile from "./pages/UserProfile";
+import CommunityPage from "./pages/CommunityPage";
+import Post from "./pages/POst";
+
 
 function App() {
   return (
@@ -15,6 +18,9 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/Home" element={<MainPage />} />
       <Route path="/userprofile" element={<UserProfile />} />
+      <Route path="/community" element={<CommunityPage />} />
+      <Route path="/post" element={<Post />} />
+      {/* Redirect any unknown paths to the landing page */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
