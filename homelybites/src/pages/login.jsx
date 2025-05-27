@@ -106,7 +106,7 @@ const Login = () => {
                 
                 // Redirect to MainPage after a short delay
                 setTimeout(() => {
-                    navigate('/');
+                    navigate('/userquestion');
                 }, 1500);
                 
                 // Auto hide toast after 5 seconds

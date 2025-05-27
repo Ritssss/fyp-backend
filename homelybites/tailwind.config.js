@@ -14,7 +14,9 @@ export default {
       fontFamily: {
         amaranth: ['Amaranth', 'sans-serif'],
       },
-    },
+      fontFamily: {
+        inter: ['Inter', 'sans-serif'],
+      },    },
   },
   plugins: [],
 }
