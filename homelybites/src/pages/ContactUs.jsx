@@ -98,6 +98,7 @@ const ContactPage = () => {
                       className="w-full border-b-2 border-gray-300 bg-transparent pb-3 text-md focus:outline-none focus:border-red-400"
                     />
                   </div>
+                  
                   <div>
                     <div className="block text-greyy text-md mb-1">
                       Your Email
