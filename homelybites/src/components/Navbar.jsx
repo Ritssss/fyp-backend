@@ -70,7 +70,7 @@ const Navbar = () => {
           <Link to="/Home" className="hover:text-accent transition">
             Home
           </Link>
-          <Link to="/about" className="hover:text-accent transition">
+          <Link to="/about" className="hover:text-accent  hover:underline hover:underline-offset-8 transition">
             About
           </Link>
           <Link to="/recipe" className="hover:text-accent transition">
@@ -79,7 +79,7 @@ const Navbar = () => {
           <Link to="/community" className="hover:text-accent transition">
             Community
           </Link>
-          <Link to="/contact" className="hover:text-accent transition">
+          <Link to="/contact" className="hover:text-accent  hover:underline hover:underline-offset-8 transition">
             Contact
           </Link>
         </div>
