@@ -74,7 +74,7 @@ const Navbar = () => {
             About
           </Link>
           <Link to="/categories" className="hover:text-accent  hover:underline hover:underline-offset-8 transition">
-            Categories
+           Recipe
           </Link>
           <Link to="/contact" className="hover:text-accent  hover:underline hover:underline-offset-8 transition">
             Contact

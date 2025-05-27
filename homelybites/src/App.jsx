@@ -16,6 +16,7 @@ function App() {
       <Route path="/LandingPage" element={<LandingPage />} />
       <Route path="/" element={<MainPage />} />
       <Route path="/contact" element={<ContactUs />} />
+      <Route path="/userprofile" element={<UserProfile/>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
