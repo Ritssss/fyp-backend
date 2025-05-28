@@ -6,8 +6,11 @@ import Login from "./pages/login";
 import MainPage from "./pages/MainPage";
 import UserProfile from "./pages/UserProfile";
 import ContactUs from "./pages/ContactUs";
+import AboutUs from "./pages/AboutUs";
 import CommunityPage from "./pages/CommunityPage";
-import Post from "./pages/POst";
+import Post from "./pages/Post";
+
+
 
 
 function App() {
@@ -19,6 +22,8 @@ function App() {
       <Route path="/LandingPage" element={<LandingPage />} />
       <Route path="/" element={<MainPage />} />
       <Route path="/contact" element={<ContactUs />} />
+      <Route path="/userprofile" element={<UserProfile/>} />
+      <Route path="/aboutus" element={<AboutUs/>} />
       <Route path="/community" element={<CommunityPage />} />
       <Route path="/post" element={<Post />} />
       {/* Redirect any unknown paths to the landing page */}
