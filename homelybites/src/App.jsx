@@ -8,7 +8,9 @@ import UserProfile from "./pages/UserProfile";
 import ContactUs from "./pages/ContactUs";
 import AboutUs from "./pages/AboutUs";
 import CommunityPage from "./pages/CommunityPage";
-import Post from "./pages/POst";
+import Post from "./pages/Post";
+
+
 
 
 function App() {

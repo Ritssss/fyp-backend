@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Heart, Bookmark, ArrowLeft, Search, Image, X, Upload } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
+
+<Navbar/>
 const CommunityPage = () => {
   
   // Mock data - easy to replace with API calls later
@@ -10,13 +13,13 @@ const CommunityPage = () => {
       id: 1,
       author: {
         name: 'Jennie Kim',
-        avatar: 'Images/CommunityPage/jennie.jpg',
+        avatar: '/Images/CommunityPage/jennie.jpg',
         posts: 42,
         following: 42,
         followers: 42
       },
       title: 'Best Places to grab a quick Snack',
-      image: 'Images/CommunityPage/ramen.jpeg',
+      image: '/Images/CommunityPage/ramen.jpeg',
       likes: 24,
       isLiked: false,
       isSaved: false,
@@ -26,13 +29,13 @@ const CommunityPage = () => {
       id: 2,
       author: {
         name: 'Choi Soobin',
-        avatar: 'Images/CommunityPage/soobin.jpg',
+        avatar: '/Images/CommunityPage/soobin.jpg',
         posts: 42,
         following: 42,
         followers: 42
       },
       title: 'Best Places to grab a quick Snack',
-      image: 'Images/CommunityPage/ramen.jpeg',
+      image: '/Images/CommunityPage/ramen.jpeg',
       likes: 18,
       isLiked: true,
       isSaved: true,
@@ -46,7 +49,7 @@ const CommunityPage = () => {
   // User profile data - easy to replace with API call
   const currentUser = {
     name: 'Jennie Kim',
-    avatar: 'Images/CommunityPage/jennie.jpg',
+    avatar: '/Images/CommunityPage/jennie.jpg',
     posts: 42,
     following: 42,
     followers: 42
@@ -128,18 +131,18 @@ const CommunityPage = () => {
                   <h3 className="text-xl font-bold text-gray-800 mb-4">{currentUser.name}</h3>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="bg-gray-50 rounded-2xl p-3">
-                    <div className="text-xl font-bold text-gray-800">{currentUser.posts}</div>
-                    <div className="text-sm text-gray-600">Posts</div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-gray-50 rounded-2xl p-2">
+                    <div className="text-lg font-bold text-gray-800">{currentUser.posts}</div>
+                    <div className="text-xs text-gray-600 leading-tight">Posts</div>
                   </div>
-                  <div className="bg-gray-50 rounded-2xl p-3">
-                    <div className="text-xl font-bold text-gray-800">{currentUser.following}</div>
-                    <div className="text-sm text-gray-600">Following</div>
+                  <div className="bg-gray-50 rounded-2xl p-2">
+                    <div className="text-lg font-bold text-gray-800">{currentUser.following}</div>
+                    <div className="text-xs text-gray-600 leading-tight">Following</div>
                   </div>
-                  <div className="bg-gray-50 rounded-2xl p-3">
-                    <div className="text-xl font-bold text-gray-800">{currentUser.followers}</div>
-                    <div className="text-sm text-gray-600">Followers</div>
+                  <div className="bg-gray-50 rounded-2xl p-2">
+                    <div className="text-lg font-bold text-gray-800">{currentUser.followers}</div>
+                    <div className="text-xs text-gray-600 leading-tight">Followers</div>
                   </div>
                 </div>
               </div>
@@ -191,9 +194,9 @@ const CommunityPage = () => {
             {/* Main Content */}
             <div className="lg:col-span-3">
               <div className="px-6 md:px-8 lg:px-12 space-y-6">
-                {/* Search and Story Section */}
+                {/* Search Bar (moved to top) */}
                 <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
-                  <div className="relative mb-6">
+                  <div className="relative">
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                       type="text"
@@ -203,7 +206,10 @@ const CommunityPage = () => {
                       className="w-full pl-12 pr-4 py-4 border-2 border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-base"
                     />
                   </div>
-                  
+                </div>
+
+                {/* Story Section (moved below search) */}
+                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
                   <div className="flex items-center bg-gray-50 rounded-2xl p-4">
                     <div className="w-12 h-12 rounded-full overflow-hidden mr-4 shadow-md">
                       <img 
@@ -304,14 +310,10 @@ const CommunityPage = () => {
             </div>
           </div>
         </div>
+        
       </div>
 
-      {/* Footer placeholder */}
-      <footer className="bg-white border-t border-gray-200 p-4">
-        <div className="max-w-7xl mx-auto text-center text-gray-600">
-          <p>&copy; 2024 HomeLyBites Community. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
