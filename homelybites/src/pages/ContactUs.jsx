@@ -55,7 +55,7 @@ const ContactPage = () => {
                 Contact Information
               </h2>
               <p className="mb-8 text-white/90">
-                Have something to share or ask?
+                Have something to share or ask? 
                 <br />
                 Reach out to the HomelyBites team below.
               </p>
