@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import UserProfile, Recipe
-from .serializers import RecipeListSerializer
+from .serializers import RecipeListSerializer, UserProfileSerializer
 
 router = DefaultRouter()
 router.register(r'categories', views.CategoryViewSet)
@@ -13,6 +13,7 @@ router.register(r'recipes', views.RecipeViewSet)
 router.register(r'user-profiles', views.UserProfileViewSet)
 
 urlpatterns = [
+    path('user-profiles/my_profile/', views.my_profile, name='my_profile'),
     path('', include(router.urls)),
     path('register/', views.register_user, name='register'),
     path('login/', views.login_user, name='login'),
@@ -48,3 +49,17 @@ def recommend_recipes(request):
     recipes = recipes.distinct()
     serializer = RecipeListSerializer(recipes, many=True)
     return Response(serializer.data)
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def my_profile(request):
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(user_profile)
+        return Response(serializer.data)
+    elif request.method == 'PUT':
+        serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)

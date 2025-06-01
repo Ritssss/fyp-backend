@@ -360,3 +360,17 @@ def recommend_recipes(request):
     serializer = RecipeListSerializer(recipes, many=True)
     return Response(serializer.data)
 
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def my_profile(request):
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+    if request.method == 'GET':
+        serializer = UserProfileSerializer(user_profile)
+        return Response(serializer.data)
+    elif request.method == 'PUT':
+        serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
