@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { useEffect, useState } from "react";
 import SignUp from "./pages/signup";
 import LandingPage from "./pages/LandingPage";
 import UserQuestion from "./pages/UserQuestion";
@@ -9,7 +10,6 @@ import ContactUs from "./pages/ContactUs";
 import AboutUs from "./pages/AboutUs";
 import CommunityPage from "./pages/CommunityPage";
 import Post from "./pages/Post";
-import AdminDashboard from './pages/AdminDashboard';
 
 
 
@@ -17,17 +17,16 @@ import AdminDashboard from './pages/AdminDashboard';
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/userquestion" element={<UserQuestion />} />
-      <Route path="/LandingPage" element={<LandingPage />} />
-      <Route path="/" element={<MainPage />} />
+      <Route path="/login" element={<LoginRoute />} />
+      <Route path="/signup" element={<SignUpRoute />} />
+      <Route path="/userquestion" element={<UserQuestionRoute />} />
+      <Route path="/Home" element={<MainPage />} />
+      <Route path="/" element={<RootRoute />} />
       <Route path="/contact" element={<ContactUs />} />
-      <Route path="/userprofile" element={<UserProfile/>} />
-      <Route path="/aboutus" element={<AboutUs/>} />
+      <Route path="/userprofile" element={<UserProfile />} />
+      <Route path="/aboutus" element={<AboutUs />} />
       <Route path="/community" element={<CommunityPage />} />
       <Route path="/post" element={<Post />} />
-      <Route path="/admin" element={<AdminDashboard />} />
       {/* Redirect any unknown paths to the landing page */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
