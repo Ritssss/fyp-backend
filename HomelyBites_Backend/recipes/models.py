@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import FileExtensionValidator
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -36,6 +37,13 @@ class Recipe(models.Model):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    profile_image = models.ImageField(
+        upload_to='profile_images/',
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif'])],
+        help_text='Upload a profile image (jpg, jpeg, png, or gif)'
+    )
     favorite_categories = models.ManyToManyField(Category, blank=True, related_name='user_favorites')
     dietary_preference = models.CharField(max_length=50, blank=True, null=True)
     allergies = models.TextField(blank=True, null=True)
@@ -43,6 +51,16 @@ class UserProfile(models.Model):
     
     def __str__(self):
         return f"{self.user.username}'s profile"
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old_instance = UserProfile.objects.get(pk=self.pk)
+                if old_instance.profile_image and old_instance.profile_image != self.profile_image:
+                    old_instance.profile_image.delete(save=False)
+            except UserProfile.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
 
 class UserRecipeInteraction(models.Model):
     INTERACTION_TYPES = [

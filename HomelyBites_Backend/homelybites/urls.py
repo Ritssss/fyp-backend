@@ -22,12 +22,26 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from rest_framework.routers import DefaultRouter
+from recipes.views import (
+    UserProfileViewSet, CategoryViewSet, RecipeViewSet,
+    import_from_spoonacular, recommend_recipes, search_recipes
+)
+
+router = DefaultRouter()
+router.register(r'profiles', UserProfileViewSet, basename='profiles')
+router.register(r'categories', CategoryViewSet, basename='categories')
+router.register(r'recipes', RecipeViewSet, basename='recipes')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('recipes.urls')),
+    path('api/', include(router.urls)),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/import_from_spoonacular/', import_from_spoonacular, name='import_from_spoonacular'),
+    path('api/recommend_recipes/', recommend_recipes, name='recommend_recipes'),
+    path('api/search_recipes/', search_recipes, name='search_recipes'),
+    path('api/', include('recipes.urls')),
 ]
 
 # Serve media files in development

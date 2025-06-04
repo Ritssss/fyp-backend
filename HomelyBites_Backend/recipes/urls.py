@@ -21,6 +21,7 @@ urlpatterns = [
     path('homepage/', views.homepage, name='homepage'),
     path('recommendations/', views.recommend_recipes, name='recommend_recipes'),
     path('search/', views.search_recipes, name='search_recipes'),
+    path('api/register_user/', views.register_user, name='register_user'),
 ]
 
 @api_view(['GET'])

@@ -205,6 +205,20 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         serializer = UserProfileSerializer(profile)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['post'])
+    def update_profile_image(self, request):
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        if 'profile_image' not in request.FILES:
+            return Response(
+                {"error": "No image file provided"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        serializer = UserProfileSerializer(profile, data={'profile_image': request.FILES['profile_image']}, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -234,14 +248,7 @@ class UserRegistrationView(generics.CreateAPIView):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def import_from_spoonacular(request):
-    """
-    Import recipes from Spoonacular API.
-    Query parameters:
-    - query: Search term
-    - number: Number of recipes to import (default: 10)
-    - random: Set to 'true' to import random recipes
-    - tags: Comma-separated tags for filtering random recipes
-    """
+    
     service = SpoonacularService()
     number = int(request.query_params.get('number', 10))
     

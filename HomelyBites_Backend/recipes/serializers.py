@@ -31,10 +31,23 @@ class UserSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     favorite_categories = CategorySerializer(many=True, read_only=True)
+    profile_image = serializers.ImageField(max_length=None, allow_empty_file=True, required=False)
     
     class Meta:
         model = UserProfile
-        fields = ['id', 'user', 'favorite_categories']
+        fields = ['id', 'user', 'profile_image', 'favorite_categories', 'dietary_preference', 'allergies', 'dislikes']
+        read_only_fields = ['id', 'user']
+
+    def update(self, instance, validated_data):
+        if 'profile_image' in validated_data:
+            if instance.profile_image:
+                instance.profile_image.delete(save=False)
+            instance.profile_image = validated_data['profile_image']
+        instance.dietary_preference = validated_data.get('dietary_preference', instance.dietary_preference)
+        instance.allergies = validated_data.get('allergies', instance.allergies)
+        instance.dislikes = validated_data.get('dislikes', instance.dislikes)
+        instance.save()
+        return instance
 
 class UserRecipeInteractionSerializer(serializers.ModelSerializer):
     class Meta:
