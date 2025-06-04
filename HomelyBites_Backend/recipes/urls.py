@@ -20,6 +20,7 @@ urlpatterns = [
     path('users/', views.list_users, name='list_users'),
     path('homepage/', views.homepage, name='homepage'),
     path('recommendations/', views.recommend_recipes, name='recommend_recipes'),
+    path('search/', views.search_recipes, name='search_recipes'),
 ]
 
 @api_view(['GET'])

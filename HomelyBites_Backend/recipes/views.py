@@ -18,6 +18,8 @@ from .serializers import (
 )
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
+import requests
+from django.conf import settings
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -373,4 +375,47 @@ def my_profile(request):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def search_recipes(request):
+    # Get query params from frontend
+    ingredients = request.GET.getlist('ingredients')  # e.g., ['chicken', 'potatoes']
+    cuisine = request.GET.get('cuisine')              # e.g., 'Italian'
+    min_cal = request.GET.get('min_cal')              # e.g., 0
+    max_cal = request.GET.get('max_cal')              # e.g., 600
+    difficulty = request.GET.get('difficulty')        # e.g., 'Easy'
+
+    # Build Spoonacular API query
+    api_key = settings.SPOONACULAR_API_KEY
+    endpoint = "https://api.spoonacular.com/recipes/complexSearch"
+    params = {
+        "apiKey": api_key,
+        "number": 20,
+    }
+    if ingredients:
+        params["includeIngredients"] = ",".join(ingredients)
+    if cuisine:
+        params["cuisine"] = cuisine
+    if min_cal:
+        params["minCalories"] = min_cal
+    if max_cal:
+        params["maxCalories"] = max_cal
+    # Note: Spoonacular does not support difficulty directly
+
+    # Call Spoonacular API
+    response = requests.get(endpoint, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        # Optionally filter by difficulty if needed
+        if difficulty:
+            filtered = []
+            for recipe in data.get('results', []):
+                # Example: filter by 'easy', 'medium', 'hard' in title or summary
+                if difficulty.lower() in (recipe.get('summary', '').lower() + recipe.get('title', '').lower()):
+                    filtered.append(recipe)
+            data['results'] = filtered
+        return Response(data)
+    else:
+        return Response({"error": "Failed to fetch recipes from Spoonacular"}, status=500)
 
