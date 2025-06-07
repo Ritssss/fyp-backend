@@ -1,6 +1,7 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.core.validators import FileExtensionValidator
+from django.utils.translation import gettext_lazy as _
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -35,8 +36,17 @@ class Recipe(models.Model):
     def __str__(self):
         return self.title
 
+class CustomUser(AbstractUser):
+    email = models.EmailField(unique=True)
+    password_reset_token = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        app_label = 'recipes'
+        verbose_name = _('user')
+        verbose_name_plural = _('users')
+
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profile')
     profile_image = models.ImageField(
         upload_to='profile_images/',
         null=True,
@@ -48,6 +58,7 @@ class UserProfile(models.Model):
     dietary_preference = models.CharField(max_length=50, blank=True, null=True)
     allergies = models.TextField(blank=True, null=True)
     dislikes = models.TextField(blank=True, null=True)
+    has_completed_questions = models.BooleanField(default=False)
     
     def __str__(self):
         return f"{self.user.username}'s profile"
@@ -69,7 +80,7 @@ class UserRecipeInteraction(models.Model):
         ('rate', 'Rated'),
     ]
     
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recipe_interactions')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='recipe_interactions')
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='user_interactions')
     interaction_type = models.CharField(max_length=10, choices=INTERACTION_TYPES)
     rating = models.IntegerField(null=True, blank=True)

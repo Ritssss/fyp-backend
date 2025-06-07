@@ -5,7 +5,7 @@ from rest_framework import viewsets, status, generics, filters, permissions
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny, IsAdminUser
-from .models import Recipe, Category, UserProfile, UserRecipeInteraction
+from .models import Recipe, Category, UserProfile, UserRecipeInteraction, CustomUser
 from .serializers import (
     RecipeSerializer, 
     RecipeListSerializer,
@@ -14,12 +14,19 @@ from .serializers import (
     UserRecipeInteractionSerializer,
     UserSerializer,
     UserRegistrationSerializer,
-    UserLoginSerializer
+    UserLoginSerializer,
+    PasswordResetSerializer,
+    PasswordResetConfirmSerializer
 )
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 import requests
 from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes
+from django.contrib.auth import get_user_model
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -220,7 +227,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserRegistrationView(generics.CreateAPIView):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
     
@@ -229,7 +236,7 @@ class UserRegistrationView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         
         # Create the user
-        user = User.objects.create_user(
+        user = CustomUser.objects.create_user(
             username=serializer.validated_data['username'],
             email=serializer.validated_data.get('email', ''),
             password=request.data.get('password'),
@@ -319,13 +326,15 @@ def login_user(request):
         )
         if user:
             refresh = RefreshToken.for_user(user)
+            profile = user.profile
             return Response({
                 'user': {
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
                     'first_name': user.first_name,
-                    'last_name': user.last_name
+                    'last_name': user.last_name,
+                    'has_completed_questions': profile.has_completed_questions
                 },
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
@@ -344,7 +353,7 @@ def homepage(request):
 @permission_classes([IsAdminUser])
 def list_users(request):
     """List all users (admin only)."""
-    users = User.objects.all().values('id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'last_login')
+    users = CustomUser.objects.all().values('id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'last_login')
     return Response(list(users))
 
 @api_view(['GET'])
@@ -425,4 +434,69 @@ def search_recipes(request):
         return Response(data)
     else:
         return Response({"error": "Failed to fetch recipes from Spoonacular"}, status=500)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_reset_request(request):
+    serializer = PasswordResetSerializer(data=request.data)
+    if serializer.is_valid():
+        email = serializer.validated_data['email']
+        try:
+            user = CustomUser.objects.filter(email=email).first()
+            if not user:
+                return Response({'message': 'If an account exists with this email, you will receive a password reset link.'})
+            
+            # Generate a random token
+            token = default_token_generator.make_token(user)
+            
+            # Store the token in the user model
+            user.password_reset_token = token
+            user.save()
+            
+            # Create reset link
+            reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+            
+            # Send email
+            send_mail(
+                'Password Reset Request',
+                f'Click the following link to reset your password: {reset_link}',
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+            return Response({'message': 'Password reset email has been sent.'})
+        except CustomUser.DoesNotExist:
+            return Response({'message': 'If an account exists with this email, you will receive a password reset link.'})
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def password_reset_confirm(request):
+    serializer = PasswordResetConfirmSerializer(data=request.data)
+    if serializer.is_valid():
+        try:
+            # Get the token from the request data
+            token = serializer.validated_data['token']
+            
+            # Find the user by the token
+            user = CustomUser.objects.get(password_reset_token=token)
+            
+            # Set the new password
+            user.set_password(serializer.validated_data['password'])
+            user.password_reset_token = None  # Clear the token
+            user.save()
+            
+            return Response({'message': 'Password has been reset successfully.'})
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'Invalid or expired token.'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def complete_user_questions(request):
+    profile = request.user.profile
+    # ... save answers from request.data ...
+    profile.has_completed_questions = True
+    profile.save()
+    return Response({'message': 'Questions completed!'})
 

@@ -108,7 +108,11 @@ const Login = () => {
             
             // Redirect to MainPage after a short delay
             setTimeout(() => {
-                navigate('/userquestion');
+                if (data.user.has_completed_questions) {
+                    navigate('/Home');
+                } else {
+                    navigate('/userquestion');
+                }
             }, 1500);
             
             // Auto hide toast after 5 seconds
@@ -128,9 +132,83 @@ const Login = () => {
         navigate('/signup');
     };
 
-    const handleForgotPassword = () => {
-        // For now, just alert the user
-        alert('Password reset functionality will be implemented soon!');
+    const handleForgotPassword = async () => {
+        const email = prompt('Please enter your email address:');
+        if (!email) return;
+
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            alert('Please enter a valid email address');
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:8000/api/password-reset/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to send reset email');
+            }
+
+            alert('If an account exists with this email, you will receive a password reset link.');
+        } catch (err) {
+            alert(err.message || 'Failed to send reset email. Please try again.');
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        if (password !== confirmPassword) {
+            setError('Passwords do not match');
+            setLoading(false);
+            return;
+        }
+
+        if (password.length < 8) {
+            setError('Password must be at least 8 characters long');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:8000/api/password-reset-confirm/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    password: password,
+                    password2: confirmPassword,
+                    token: `${uid}/${token}`
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to reset password');
+            }
+
+            setSuccess('Password has been reset successfully!');
+            setTimeout(() => {
+                navigate('/login');
+            }, 2000);
+        } catch (err) {
+            setError(err.message || 'Failed to reset password. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
