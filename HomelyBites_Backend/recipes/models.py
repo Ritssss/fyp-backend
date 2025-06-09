@@ -46,6 +46,17 @@ class CustomUser(AbstractUser):
         verbose_name_plural = _('users')
 
 class UserProfile(models.Model):
+    DIETARY_CHOICES = [
+        ('vegetarian', 'Vegetarian'),
+        ('vegan', 'Vegan'),
+        ('pescatarian', 'Pescatarian'),
+        ('gluten-free', 'Gluten Free'),
+        ('dairy-free', 'Dairy Free'),
+        ('keto', 'Keto'),
+        ('paleo', 'Paleo'),
+        ('none', 'No Specific Plan'),
+    ]
+
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profile')
     profile_image = models.ImageField(
         upload_to='profile_images/',
@@ -55,15 +66,39 @@ class UserProfile(models.Model):
         help_text='Upload a profile image (jpg, jpeg, png, or gif)'
     )
     favorite_categories = models.ManyToManyField(Category, blank=True, related_name='user_favorites')
-    dietary_preference = models.CharField(max_length=50, blank=True, null=True)
-    allergies = models.TextField(blank=True, null=True)
-    dislikes = models.TextField(blank=True, null=True)
+    dietary_preference = models.CharField(
+        max_length=50,
+        choices=DIETARY_CHOICES,
+        blank=True,
+        null=True,
+        help_text='User\'s dietary preference'
+    )
+    allergies = models.TextField(
+        blank=True,
+        null=True,
+        help_text='List of user\'s allergies'
+    )
+    dislikes = models.TextField(
+        blank=True,
+        null=True,
+        help_text='List of foods user dislikes'
+    )
     has_completed_questions = models.BooleanField(default=False)
+    last_updated = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return f"{self.user.username}'s profile"
 
     def save(self, *args, **kwargs):
+        # Clean and validate data before saving
+        if self.dietary_preference:
+            self.dietary_preference = self.dietary_preference.strip().lower()
+        if self.allergies:
+            self.allergies = self.allergies.strip()
+        if self.dislikes:
+            self.dislikes = self.dislikes.strip()
+            
+        # Handle profile image cleanup
         if self.pk:
             try:
                 old_instance = UserProfile.objects.get(pk=self.pk)
@@ -71,7 +106,13 @@ class UserProfile(models.Model):
                     old_instance.profile_image.delete(save=False)
             except UserProfile.DoesNotExist:
                 pass
+                
         super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = 'User Profile'
+        verbose_name_plural = 'User Profiles'
+        ordering = ['-last_updated']
 
 class UserRecipeInteraction(models.Model):
     INTERACTION_TYPES = [

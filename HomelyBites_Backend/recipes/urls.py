@@ -13,6 +13,8 @@ router.register(r'recipes', views.RecipeViewSet)
 router.register(r'user-profiles', views.UserProfileViewSet)
 
 urlpatterns = [
+    path('user-profiles/my_profile/', views.my_profile, name='my_profile'),
+    path('user-profiles/update/', views.update_user_profile, name='update_user_profile'),
     path('', include(router.urls)),
     path('register/', views.register_user, name='register'),
     path('login/', views.login_user, name='login'),
@@ -20,7 +22,6 @@ urlpatterns = [
     path('homepage/', views.homepage, name='homepage'),
     path('recommendations/', views.recommend_recipes, name='recommend_recipes'),
     path('search/', views.search_recipes, name='search_recipes'),
-    path('user-profiles/my_profile/', views.my_profile, name='my_profile'),
     path('import_from_spoonacular/', views.import_from_spoonacular, name='import_from_spoonacular'),
     # Password reset URLs
     path('password-reset/', views.password_reset_request, name='password_reset_request'),

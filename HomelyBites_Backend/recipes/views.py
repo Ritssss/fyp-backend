@@ -5,12 +5,13 @@ from rest_framework import viewsets, status, generics, filters, permissions
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny, IsAdminUser
+from django.utils import timezone
 from .models import Recipe, Category, UserProfile, UserRecipeInteraction, CustomUser
 from .serializers import (
     RecipeSerializer, 
     RecipeListSerializer,
     CategorySerializer, 
-    UserProfileSerializer, 
+    UserProfileSerializer,
     UserRecipeInteractionSerializer,
     UserSerializer,
     UserRegistrationSerializer,
@@ -395,12 +396,27 @@ def my_profile(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_recipes(request):
-    # Get query params from frontend
-    ingredients = request.GET.getlist('ingredients')  # e.g., ['chicken', 'potatoes']
-    cuisine = request.GET.get('cuisine')              # e.g., 'Italian'
-    min_cal = request.GET.get('min_cal')              # e.g., 0
-    max_cal = request.GET.get('max_cal')              # e.g., 600
-    difficulty = request.GET.get('difficulty')        # e.g., 'Easy'
+    # Get the search query from user
+    search_query = request.GET.get('q', '').strip().lower()
+    
+    # Get time and calorie filters
+    max_cooking_time = request.GET.get('max_time')  # in minutes
+    min_calories = request.GET.get('min_calories')
+    max_calories = request.GET.get('max_calories')
+    
+    # Get user preferences if authenticated
+    user_preferences = {}
+    if request.user.is_authenticated:
+        try:
+            user_profile = UserProfile.objects.get(user=request.user)
+            user_preferences = {
+                'dietary_preference': user_profile.dietary_preference,
+                'allergies': user_profile.allergies.split(',') if user_profile.allergies else [],
+                'dislikes': user_profile.dislikes.split(',') if user_profile.dislikes else [],
+                'favorite_categories': [cat.name for cat in user_profile.favorite_categories.all()]
+            }
+        except UserProfile.DoesNotExist:
+            pass
 
     # Build Spoonacular API query
     api_key = settings.SPOONACULAR_API_KEY
@@ -408,29 +424,140 @@ def search_recipes(request):
     params = {
         "apiKey": api_key,
         "number": 20,
+        "addRecipeInformation": True,
+        "fillIngredients": True,
+        "instructionsRequired": True,
+        "addRecipeNutrition": True,
     }
-    if ingredients:
-        params["includeIngredients"] = ",".join(ingredients)
-    if cuisine:
-        params["cuisine"] = cuisine
-    if min_cal:
-        params["minCalories"] = min_cal
-    if max_cal:
-        params["maxCalories"] = max_cal
-    # Note: Spoonacular does not support difficulty directly
+    
+    # If user provided a search query, use it
+    if search_query:
+        params["query"] = search_query
+    
+    # Add time and calorie filters
+    if max_cooking_time:
+        params["maxReadyTime"] = max_cooking_time
+    if min_calories:
+        params["minCalories"] = min_calories
+    if max_calories:
+        params["maxCalories"] = max_calories
+    
+    # Add user preferences to search parameters if available
+    if user_preferences:
+        if user_preferences['dietary_preference']:
+            params["diet"] = user_preferences['dietary_preference']
+        if user_preferences['allergies']:
+            params["intolerances"] = ",".join(user_preferences['allergies'])
+        if user_preferences['favorite_categories']:
+            params["cuisine"] = ",".join(user_preferences['favorite_categories'])
 
     # Call Spoonacular API
     response = requests.get(endpoint, params=params)
     if response.status_code == 200:
         data = response.json()
-        # Optionally filter by difficulty if needed
-        if difficulty:
-            filtered = []
-            for recipe in data.get('results', []):
-                # Example: filter by 'easy', 'medium', 'hard' in title or summary
-                if difficulty.lower() in (recipe.get('summary', '').lower() + recipe.get('title', '').lower()):
-                    filtered.append(recipe)
-            data['results'] = filtered
+        
+        # Process and enhance the recipe data
+        for recipe in data.get('results', []):
+            # Format recipe timing information
+            recipe['timing'] = {
+                'prep_time': f"{recipe.get('preparationMinutes', 0)} Minutes",
+                'cook_time': f"{recipe.get('cookingMinutes', 0)} Minutes",
+                'total_time': f"{recipe.get('readyInMinutes', 0)} Minutes",
+                'servings': f"{recipe.get('servings', 0)} Servings"
+            }
+            
+            # Format difficulty level
+            total_time = recipe.get('readyInMinutes', 0)
+            if total_time <= 30:
+                recipe['difficulty'] = 'Easy'
+            elif total_time <= 60:
+                recipe['difficulty'] = 'Medium'
+            else:
+                recipe['difficulty'] = 'Hard'
+            
+            # Format nutrition information
+            if 'nutrition' in recipe:
+                nutrition = recipe['nutrition']
+                recipe['nutrition_summary'] = {
+                    'calories': next((n['amount'] for n in nutrition.get('nutrients', []) if n['name'] == 'Calories'), 0),
+                    'protein': next((n['amount'] for n in nutrition.get('nutrients', []) if n['name'] == 'Protein'), 0),
+                    'carbs': next((n['amount'] for n in nutrition.get('nutrients', []) if n['name'] == 'Carbohydrates'), 0),
+                    'fat': next((n['amount'] for n in nutrition.get('nutrients', []) if n['name'] == 'Fat'), 0)
+                }
+            
+            # Format ingredients in a clear list
+            if 'extendedIngredients' in recipe:
+                recipe['ingredients'] = [
+                    {
+                        'name': ing['name'],
+                        'amount': ing['amount'],
+                        'unit': ing['unit'],
+                        'original': ing['original'],
+                        'formatted': f"{ing['amount']} {ing['unit']} {ing['name']}"
+                    }
+                    for ing in recipe['extendedIngredients']
+                ]
+            
+            # Format instructions into clear steps
+            if 'analyzedInstructions' in recipe and recipe['analyzedInstructions']:
+                steps = recipe['analyzedInstructions'][0].get('steps', [])
+                recipe['instructions'] = [
+                    {
+                        'step': step['number'],
+                        'instruction': step['step'],
+                        'ingredients': [ing['name'] for ing in step.get('ingredients', [])],
+                        'equipment': [eq['name'] for eq in step.get('equipment', [])]
+                    }
+                    for step in steps
+                ]
+            
+            # Add recipe metadata
+            recipe['metadata'] = {
+                'title': recipe.get('title', ''),
+                'image': recipe.get('image', ''),
+                'description': recipe.get('summary', ''),
+                'cuisines': recipe.get('cuisines', []),
+                'dishTypes': recipe.get('dishTypes', []),
+                'diets': recipe.get('diets', []),
+                'occasions': recipe.get('occasions', []),
+                'source': {
+                    'name': recipe.get('sourceName', ''),
+                    'url': recipe.get('sourceUrl', '')
+                }
+            }
+            
+            # Add user preference matches
+            if user_preferences:
+                recipe['user_preference_matches'] = {
+                    'matches_dietary_preference': user_preferences['dietary_preference'] in recipe.get('diets', []),
+                    'matches_favorite_cuisine': any(cuisine in recipe.get('cuisines', []) for cuisine in user_preferences['favorite_categories']),
+                    'contains_allergies': any(allergy in recipe.get('ingredients', '') for allergy in user_preferences['allergies']),
+                    'contains_dislikes': any(dislike in recipe.get('ingredients', '') for dislike in user_preferences['dislikes'])
+                }
+            
+            # Format the final recipe object
+            formatted_recipe = {
+                'id': recipe.get('id'),
+                'metadata': recipe['metadata'],
+                'timing': recipe['timing'],
+                'difficulty': recipe['difficulty'],
+                'nutrition': recipe.get('nutrition_summary', {}),
+                'ingredients': recipe.get('ingredients', []),
+                'instructions': recipe.get('instructions', []),
+                'additional_info': {
+                    'winePairing': recipe.get('winePairing', {}),
+                    'tips': recipe.get('tips', []),
+                    'tags': recipe.get('tags', [])
+                }
+            }
+            
+            if user_preferences:
+                formatted_recipe['user_preference_matches'] = recipe['user_preference_matches']
+            
+            # Replace the original recipe with the formatted version
+            recipe.clear()
+            recipe.update(formatted_recipe)
+        
         return Response(data)
     else:
         return Response({"error": "Failed to fetch recipes from Spoonacular"}, status=500)
@@ -499,4 +626,81 @@ def complete_user_questions(request):
     profile.has_completed_questions = True
     profile.save()
     return Response({'message': 'Questions completed!'})
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_user_profile(request):
+    """Update user profile information."""
+    user = request.user
+    profile, created = UserProfile.objects.get_or_create(user=user)
+    
+    try:
+        # Update user information with validation
+        if 'first_name' in request.data:
+            if not request.data['first_name'].strip():
+                return Response({'error': 'First name cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
+            user.first_name = request.data['first_name'].strip()
+            
+        if 'last_name' in request.data:
+            if not request.data['last_name'].strip():
+                return Response({'error': 'Last name cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
+            user.last_name = request.data['last_name'].strip()
+            
+        if 'email' in request.data:
+            email = request.data['email'].strip()
+            if not email:
+                return Response({'error': 'Email cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
+            if CustomUser.objects.exclude(id=user.id).filter(email=email).exists():
+                return Response({'error': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+            user.email = email
+            
+        user.save()
+        
+        # Update profile information with validation
+        if 'dietary_preference' in request.data:
+            profile.dietary_preference = request.data['dietary_preference'].strip()
+            
+        if 'allergies' in request.data:
+            profile.allergies = request.data['allergies'].strip()
+            
+        if 'dislikes' in request.data:
+            profile.dislikes = request.data['dislikes'].strip()
+            
+        if 'profile_image' in request.FILES:
+            # Validate image file
+            image = request.FILES['profile_image']
+            if image.size > 5 * 1024 * 1024:  # 5MB limit
+                return Response({'error': 'Image size must be less than 5MB'}, status=status.HTTP_400_BAD_REQUEST)
+            if not image.content_type.startswith('image/'):
+                return Response({'error': 'File must be an image'}, status=status.HTTP_400_BAD_REQUEST)
+            profile.profile_image = image
+            
+        profile.save()
+        
+        # Log the update
+        print(f"Profile updated for user {user.username} at {timezone.now()}")
+        
+        return Response({
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name
+            },
+            'profile': {
+                'dietary_preference': profile.dietary_preference,
+                'allergies': profile.allergies,
+                'dislikes': profile.dislikes,
+                'profile_image': profile.profile_image.url if profile.profile_image else None
+            },
+            'message': 'Profile updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error updating profile for user {user.username}: {str(e)}")
+        return Response(
+            {'error': 'An error occurred while updating the profile'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
