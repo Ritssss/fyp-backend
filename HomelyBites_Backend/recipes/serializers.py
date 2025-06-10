@@ -31,11 +31,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     favorite_categories = CategorySerializer(many=True, read_only=True)
     profile_image = serializers.ImageField(max_length=None, allow_empty_file=True, required=False)
+    has_completed_questions = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = UserProfile
-        fields = ['id', 'user', 'profile_image', 'favorite_categories', 'dietary_preference', 'allergies', 'dislikes']
-        read_only_fields = ['id', 'user']
+        fields = ['id', 'user', 'profile_image', 'favorite_categories', 'dietary_preference', 'allergies', 'dislikes', 'has_completed_questions']
+        read_only_fields = ['id', 'user', 'has_completed_questions']
 
     def update(self, instance, validated_data):
         if 'profile_image' in validated_data:

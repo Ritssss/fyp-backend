@@ -616,10 +616,18 @@ def password_reset_confirm(request):
 @permission_classes([IsAuthenticated])
 def complete_user_questions(request):
     profile = request.user.profile
-    # ... save answers from request.data ...
+    data = request.data
+    # Save dietary preference (store as comma-separated string or first value)
+    if 'dietary' in data and data['dietary']:
+        # If user selects multiple, you can choose to store the first or join them
+        profile.dietary_preference = data['dietary'][0] if isinstance(data['dietary'], list) else data['dietary']
+    if 'allergies' in data:
+        profile.allergies = ','.join(data['allergies']) if isinstance(data['allergies'], list) else data['allergies']
+    if 'dislikes' in data:
+        profile.dislikes = ','.join(data['dislikes']) if isinstance(data['dislikes'], list) else data['dislikes']
     profile.has_completed_questions = True
     profile.save()
-    return Response({'message': 'Questions completed!'})
+    return Response({'message': 'Questions completed! User profile updated.'})
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
