@@ -417,6 +417,9 @@ def search_recipes(request):
             }
         except UserProfile.DoesNotExist:
             pass
+    print("User dietary preference:", user_preferences.get('dietary_preference'))
+    print("User allergies:", user_preferences.get('allergies'))
+    print("User dislikes:", user_preferences.get('dislikes'))
 
     # Build Spoonacular API query
     api_key = settings.SPOONACULAR_API_KEY
@@ -453,11 +456,16 @@ def search_recipes(request):
 
     # Call Spoonacular API
     response = requests.get(endpoint, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        
-        # Process and enhance the recipe data
+    dietary_fallback = False
+
+    def process_results(data):
+        filtered_results = []
+        calories_list = []
         for recipe in data.get('results', []):
+            # Strictly filter by dietary preference if set
+            if user_preferences.get('dietary_preference') and not dietary_fallback:
+                if user_preferences['dietary_preference'].lower() not in [d.lower() for d in recipe.get('diets', [])]:
+                    continue
             # Format recipe timing information
             recipe['timing'] = {
                 'prep_time': f"{recipe.get('preparationMinutes', 0)} Minutes",
@@ -465,26 +473,19 @@ def search_recipes(request):
                 'total_time': f"{recipe.get('readyInMinutes', 0)} Minutes",
                 'servings': f"{recipe.get('servings', 0)} Servings"
             }
-            
-            # Format difficulty level
-            total_time = recipe.get('readyInMinutes', 0)
-            if total_time <= 30:
-                recipe['difficulty'] = 'Easy'
-            elif total_time <= 60:
-                recipe['difficulty'] = 'Medium'
-            else:
-                recipe['difficulty'] = 'Hard'
-            
             # Format nutrition information
+            calories = None
             if 'nutrition' in recipe:
                 nutrition = recipe['nutrition']
+                calories = next((n['amount'] for n in nutrition.get('nutrients', []) if n['name'] == 'Calories'), 0)
                 recipe['nutrition_summary'] = {
-                    'calories': next((n['amount'] for n in nutrition.get('nutrients', []) if n['name'] == 'Calories'), 0),
+                    'calories': calories,
                     'protein': next((n['amount'] for n in nutrition.get('nutrients', []) if n['name'] == 'Protein'), 0),
                     'carbs': next((n['amount'] for n in nutrition.get('nutrients', []) if n['name'] == 'Carbohydrates'), 0),
                     'fat': next((n['amount'] for n in nutrition.get('nutrients', []) if n['name'] == 'Fat'), 0)
                 }
-            
+            if calories is not None:
+                calories_list.append(calories)
             # Format ingredients in a clear list
             if 'extendedIngredients' in recipe:
                 recipe['ingredients'] = [
@@ -497,7 +498,6 @@ def search_recipes(request):
                     }
                     for ing in recipe['extendedIngredients']
                 ]
-            
             # Format instructions into clear steps
             if 'analyzedInstructions' in recipe and recipe['analyzedInstructions']:
                 steps = recipe['analyzedInstructions'][0].get('steps', [])
@@ -510,7 +510,6 @@ def search_recipes(request):
                     }
                     for step in steps
                 ]
-            
             # Add recipe metadata
             recipe['metadata'] = {
                 'title': recipe.get('title', ''),
@@ -525,40 +524,35 @@ def search_recipes(request):
                     'url': recipe.get('sourceUrl', '')
                 }
             }
-            
-            # Add user preference matches
-            if user_preferences:
-                recipe['user_preference_matches'] = {
-                    'matches_dietary_preference': user_preferences['dietary_preference'] in recipe.get('diets', []),
-                    'matches_favorite_cuisine': any(cuisine in recipe.get('cuisines', []) for cuisine in user_preferences['favorite_categories']),
-                    'contains_allergies': any(allergy in recipe.get('ingredients', '') for allergy in user_preferences['allergies']),
-                    'contains_dislikes': any(dislike in recipe.get('ingredients', '') for dislike in user_preferences['dislikes'])
-                }
-            
-            # Format the final recipe object
-            formatted_recipe = {
-                'id': recipe.get('id'),
-                'metadata': recipe['metadata'],
-                'timing': recipe['timing'],
-                'difficulty': recipe['difficulty'],
-                'nutrition': recipe.get('nutrition_summary', {}),
-                'ingredients': recipe.get('ingredients', []),
-                'instructions': recipe.get('instructions', []),
-                'additional_info': {
-                    'winePairing': recipe.get('winePairing', {}),
-                    'tips': recipe.get('tips', []),
-                    'tags': recipe.get('tags', [])
-                }
-            }
-            
-            if user_preferences:
-                formatted_recipe['user_preference_matches'] = recipe['user_preference_matches']
-            
-            # Replace the original recipe with the formatted version
-            recipe.clear()
-            recipe.update(formatted_recipe)
-        
-        return Response(data)
+            filtered_results.append(recipe)
+        min_calories = min(calories_list) if calories_list else None
+        max_calories = max(calories_list) if calories_list else None
+        return filtered_results, min_calories, max_calories
+
+    if response.status_code == 200:
+        data = response.json()
+        filtered_results, min_calories, max_calories = process_results(data)
+        # If no results and dietary preference was set, try fallback
+        if not filtered_results and user_preferences.get('dietary_preference'):
+            dietary_fallback = True
+            params.pop('diet', None)
+            response2 = requests.get(endpoint, params=params)
+            if response2.status_code == 200:
+                data2 = response2.json()
+                filtered_results, min_calories, max_calories = process_results(data2)
+                return Response({
+                    'results': filtered_results,
+                    'min_calories': min_calories,
+                    'max_calories': max_calories,
+                    'dietary_fallback': True,
+                    'message': 'No recipes found matching your dietary preference. Showing all results instead.'
+                })
+        return Response({
+            'results': filtered_results,
+            'min_calories': min_calories,
+            'max_calories': max_calories,
+            'dietary_fallback': False
+        })
     else:
         return Response({"error": "Failed to fetch recipes from Spoonacular"}, status=500)
 
