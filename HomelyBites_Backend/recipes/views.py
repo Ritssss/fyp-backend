@@ -233,25 +233,29 @@ class UserRegistrationView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        # Create the user
-        user = CustomUser.objects.create_user(
-            username=serializer.validated_data['username'],
-            email=serializer.validated_data.get('email', ''),
-            password=request.data.get('password'),
-            first_name=serializer.validated_data.get('first_name', ''),
-            last_name=serializer.validated_data.get('last_name', '')
-        )
-        
-        # Create user profile
-        UserProfile.objects.create(user=user)
-        
-        return Response(
-            {"message": "User registered successfully"},
-            status=status.HTTP_201_CREATED
-        )
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            # Create the user
+            user = CustomUser.objects.create_user(
+                username=serializer.validated_data['username'],
+                email=serializer.validated_data.get('email', ''),
+                password=request.data.get('password'),
+                first_name=serializer.validated_data.get('first_name', ''),
+                last_name=serializer.validated_data.get('last_name', '')
+            )
+            # Create user profile
+            UserProfile.objects.create(user=user)
+            return Response(
+                {"message": "User registered successfully"},
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            print(f"Error during registration: {str(e)}")
+            return Response(
+                {"error": "An unexpected error occurred during registration."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
@@ -297,54 +301,68 @@ def import_from_spoonacular(request):
 @permission_classes([AllowAny])
 def register_user(request):
     """Register a new user."""
-    serializer = UserRegistrationSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.save()
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name
-            },
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'message': 'User registered successfully'
-        }, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def login_user(request):
-    """Login a user and return JWT tokens."""
-    serializer = UserLoginSerializer(data=request.data)
-    if serializer.is_valid():
-        user = authenticate(
-            username=serializer.validated_data['username'],
-            password=serializer.validated_data['password']
-        )
-        if user:
+    try:
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
             refresh = RefreshToken.for_user(user)
-            profile = user.profile
             return Response({
                 'user': {
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
                     'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'has_completed_questions': profile.has_completed_questions
+                    'last_name': user.last_name
                 },
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
-                'message': 'Login successful'
-            })
-        return Response({
-            'error': 'Invalid credentials'
-        }, status=status.HTTP_401_UNAUTHORIZED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                'message': 'User registered successfully'
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        print(f"Error during registration: {str(e)}")
+        return Response(
+            {"error": "An unexpected error occurred during registration."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_user(request):
+    """Login a user and return JWT tokens."""
+    try:
+        serializer = UserLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = authenticate(
+                username=serializer.validated_data['username'],
+                password=serializer.validated_data['password']
+            )
+            if user:
+                refresh = RefreshToken.for_user(user)
+                profile = user.profile
+                return Response({
+                    'user': {
+                        'id': user.id,
+                        'username': user.username,
+                        'email': user.email,
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                        'has_completed_questions': profile.has_completed_questions
+                    },
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                    'message': 'Login successful'
+                })
+            return Response({
+                'error': 'Invalid credentials'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        print(f"Error during login: {str(e)}")
+        return Response(
+            {"error": "An unexpected error occurred during login."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 def homepage(request):
     """Render the homepage."""
