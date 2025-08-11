@@ -23,8 +23,9 @@ urlpatterns = [
     path('recommendations/', views.recommend_recipes, name='recommend_recipes'),
     path('search/', views.search_recipes, name='search_recipes'),
     path('import_from_spoonacular/', views.import_from_spoonacular, name='import_from_spoonacular'),
-    # Password reset URLs
+    
     path('password-reset/', views.password_reset_request, name='password_reset_request'),
     path('password-reset-confirm/', views.password_reset_confirm, name='password_reset_confirm'),
     path('complete-user-questions/', views.complete_user_questions, name='complete_user_questions'),
+    path('activate/<uidb64>/<token>/', views.activate_user, name='activate_user'),
 ]

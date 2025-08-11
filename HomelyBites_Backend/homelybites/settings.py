@@ -168,13 +168,20 @@ CORS_ALLOWED_ORIGINS = [
 SPOONACULAR_API_KEY = '28757902a1544a44b3466566d399895d'
 
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your_email@gmail.com'
-EMAIL_HOST_PASSWORD = 'your_app_password'
-DEFAULT_FROM_EMAIL = 'your_email@gmail.com'
+EMAIL_PORT = 465
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = 'stharitika0@gmail.com'          
+EMAIL_HOST_PASSWORD = 'jyqazaljbbkirvwb'          
+DEFAULT_FROM_EMAIL = 'stharitika0@gmail.com'
+
+# Needed by the activation link we send
+BACKEND_BASE_URL = 'http://127.0.0.1:8000'
+
+# Required by the email deliverability check (Abstract API)
+ABSTRACT_API_KEY = '67130812a6784e04b35619f7d32a7b25'
 
 # Frontend URL for password reset
-FRONTEND_URL = 'http://localhost:5173'  # Update to match your frontend URL
+FRONTEND_URL = 'http://localhost:5173' 

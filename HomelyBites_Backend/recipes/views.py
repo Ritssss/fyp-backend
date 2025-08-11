@@ -1,4 +1,5 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import HttpResponseRedirect
 from django.db.models import Count, Avg, Q
 from django.contrib.auth.models import User
 from rest_framework import viewsets, status, generics, filters, permissions
@@ -28,6 +29,10 @@ from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth import get_user_model
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -50,17 +55,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Recipe.objects.all()
         
-        # Filter by category if provided
+        
         category = self.request.query_params.get('category', None)
         if category:
             queryset = queryset.filter(categories__slug=category)
             
-        # Filter by difficulty if provided
+        
         difficulty = self.request.query_params.get('difficulty', None)
         if difficulty:
             queryset = queryset.filter(difficulty=difficulty)
             
-        # Filter by max preparation time if provided
+        
         max_prep_time = self.request.query_params.get('max_prep_time', None)
         if max_prep_time:
             queryset = queryset.filter(prep_time__lte=int(max_prep_time))
@@ -69,39 +74,36 @@ class RecipeViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def recommended(self, request):
-        """
-        Get personalized recipe recommendations for the authenticated user.
-        For non-authenticated users, return popular recipes.
-        """
+       
         if request.user.is_authenticated:
-            # Get user's favorite categories
+            
             try:
                 user_profile = UserProfile.objects.get(user=request.user)
                 favorite_categories = user_profile.favorite_categories.all()
                 
-                # Get recipes from user's favorite categories
+                
                 recommended_recipes = Recipe.objects.filter(
                     categories__in=favorite_categories
                 ).distinct()
                 
-                # If we have less than 5 recommendations, add popular recipes
+                
                 if recommended_recipes.count() < 5:
                     popular_recipes = Recipe.objects.annotate(
                         interaction_count=Count('user_interactions')
                     ).order_by('-interaction_count')
                     
-                    # Combine the two querysets without duplicates
+                    
                     recommended_recipes = (recommended_recipes | popular_recipes).distinct()[:10]
                 else:
                     recommended_recipes = recommended_recipes[:10]
                     
             except UserProfile.DoesNotExist:
-                # If user profile doesn't exist, return popular recipes
+                
                 recommended_recipes = Recipe.objects.annotate(
                     interaction_count=Count('user_interactions')
                 ).order_by('-interaction_count')[:10]
         else:
-            # For non-authenticated users, return popular recipes
+            
             recommended_recipes = Recipe.objects.annotate(
                 interaction_count=Count('user_interactions')
             ).order_by('-interaction_count')[:10]
@@ -148,7 +150,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        # If rating is provided, validate it
+        
         if rating is not None:
             try:
                 rating = int(rating)
@@ -304,7 +306,10 @@ def register_user(request):
     try:
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
+            try:
+                user = serializer.save()
+            except ValidationError as e:
+                return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
             refresh = RefreshToken.for_user(user)
             return Response({
                 'user': {
@@ -329,7 +334,6 @@ def register_user(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_user(request):
-    """Login a user and return JWT tokens."""
     try:
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -365,13 +369,11 @@ def login_user(request):
         )
 
 def homepage(request):
-    """Render the homepage."""
     return render(request, 'homepage.html')
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def list_users(request):
-    """List all users (admin only)."""
     users = CustomUser.objects.all().values('id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'last_login')
     return Response(list(users))
 
@@ -723,4 +725,26 @@ def update_user_profile(request):
             {'error': 'An error occurred while updating the profile'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+@api_view(['GET'])
+def activate_user(request, uidb64, token):
+    User = get_user_model()
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        # Redirect to frontend with success message
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+        redirect_url = f"{frontend_url}/login?message=Email verified successfully! You can now log in to your account."
+        return HttpResponseRedirect(redirect_url)
+    else:
+        # Redirect to frontend with error message
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+        redirect_url = f"{frontend_url}/login?error=Invalid or expired activation link. Please request a new verification email."
+        return HttpResponseRedirect(redirect_url)
 

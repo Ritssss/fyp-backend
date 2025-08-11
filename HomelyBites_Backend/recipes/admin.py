@@ -1,7 +1,14 @@
 from django.contrib import admin
-from .models import Recipe, Category, UserProfile, UserRecipeInteraction
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from .models import Recipe, Category, UserProfile, UserRecipeInteraction, CustomUser
 
 # Register your models here.
+
+@admin.register(CustomUser)
+class CustomUserAdmin(DjangoUserAdmin):
+    list_display = ('username', 'email', 'is_active', 'is_staff', 'date_joined', 'last_login')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    ordering = ('-date_joined',)
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
