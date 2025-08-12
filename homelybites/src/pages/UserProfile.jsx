@@ -36,6 +36,13 @@ const UserProfile = () => {
   // State for making layout scrollable after clicking change profile
   const [isScrollableMode, setIsScrollableMode] = useState(false);
 
+  // State for email verification
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState('');
+
   // Fetch user profile data when component mounts
   useEffect(() => {
     const fetchUserProfile = async () => {

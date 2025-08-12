@@ -672,21 +672,112 @@ def update_user_profile(request):
             email = request.data['email'].strip()
             if not email:
                 return Response({'error': 'Email cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
-            if CustomUser.objects.exclude(id=user.id).filter(email=email).exists():
-                return Response({'error': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
-            user.email = email
+            
+            # Check if email is actually changing
+            if email.lower() != user.email.lower():
+                # Email is changing, trigger verification process
+                if CustomUser.objects.exclude(id=user.id).filter(email=email).exists():
+                    return Response({'error': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Validate email format and deliverability
+                api_key = getattr(settings, 'ABSTRACT_API_KEY', None)
+                if api_key:
+                    try:
+                        response = requests.get(
+                            "https://emailvalidation.abstractapi.com/v1/",
+                            params={"api_key": api_key, "email": email},
+                            timeout=6,
+                        )
+                        data = response.json() if response.ok else {}
+                        
+                        if data.get('deliverability') != 'DELIVERABLE':
+                            return Response({'error': 'Please enter a valid, deliverable email address.'}, status=status.HTTP_400_BAD_REQUEST)
+                    except requests.RequestException:
+                        # If API fails, continue without validation
+                        pass
+                
+                # Store the new email for verification
+                user.pending_email = email
+                
+                # Generate verification token
+                token = default_token_generator.make_token(user)
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                
+                # Create verification link
+                backend_base_url = getattr(settings, 'BACKEND_BASE_URL', 'http://127.0.0.1:8000')
+                verification_link = f"{backend_base_url}/api/verify-email-change/{uid}/{token}/"
+                
+                # Send verification email to the OLD email address
+                subject = 'Email Change Request - HomelyBites'
+                message = f"""
+Hello {user.first_name}!
+
+You have requested to change your email address from {user.email} to {email}.
+
+To complete this change, please click the verification link below:
+
+{verification_link}
+
+This link will expire in 24 hours.
+
+If you did not request this change, please ignore this email and your current email address will remain unchanged.
+
+Best regards,
+The HomelyBites Team
+                """
+                
+                try:
+                    send_mail(
+                        subject,
+                        message,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [user.email],  # Send to OLD email
+                        fail_silently=False,
+                    )
+                    
+                    user.save()
+                    
+                    return Response({
+                        'message': 'Email change requires verification. Please check your current email for a verification link.',
+                        'requires_verification': True,
+                        'pending_email': email
+                    }, status=status.HTTP_200_OK)
+                    
+                except Exception as e:
+                    # Clear the pending email change if email sending fails
+                    user.pending_email = None
+                    user.save()
+                    
+                    return Response({
+                        'error': 'Failed to send verification email. Please try again later.'
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            # If email is not changing, continue with normal update
             
         user.save()
         
         # Update profile information with validation
         if 'dietary_preference' in request.data:
-            profile.dietary_preference = request.data['dietary_preference'].strip()
+            dietary = request.data['dietary_preference']
+            if isinstance(dietary, list):
+                # If it's a list, take the first preference or join them
+                profile.dietary_preference = dietary[0] if dietary else None
+            else:
+                profile.dietary_preference = dietary.strip() if dietary else None
             
         if 'allergies' in request.data:
-            profile.allergies = request.data['allergies'].strip()
+            allergies = request.data['allergies']
+            if isinstance(allergies, list):
+                profile.allergies = ', '.join(allergies) if allergies else None
+            else:
+                profile.allergies = allergies.strip() if allergies else None
             
         if 'dislikes' in request.data:
-            profile.dislikes = request.data['dislikes'].strip()
+            dislikes = request.data['dislikes']
+            if isinstance(dislikes, list):
+                profile.dislikes = ', '.join(dislikes) if dislikes else None
+            else:
+                profile.dislikes = dislikes.strip() if dislikes else None
             
         if 'profile_image' in request.FILES:
             # Validate image file
@@ -746,5 +837,79 @@ def activate_user(request, uidb64, token):
         # Redirect to frontend with error message
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
         redirect_url = f"{frontend_url}/login?error=Invalid or expired activation link. Please request a new verification email."
+        return HttpResponseRedirect(redirect_url)
+
+
+
+
+
+
+
+
+
+
+
+@api_view(['GET'])
+def verify_email_change_link(request, uidb64, token):
+    """Verify email change via link sent to old email address."""
+    User = get_user_model()
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user and default_token_generator.check_token(user, token):
+        # Check if user has a pending email change
+        if user.pending_email:
+            # Update the email
+            old_email = user.email
+            user.email = user.pending_email
+            
+            # Clear verification data
+            user.pending_email = None
+            
+            user.save()
+            
+            # Send confirmation email to the NEW email address
+            subject = 'Email Address Changed Successfully - HomelyBites'
+            message = f"""
+Hello {user.first_name}!
+
+Your email address has been successfully changed from {old_email} to {user.email}.
+
+You can now use your new email address to log in to your HomelyBites account.
+
+If you did not make this change, please contact our support team immediately.
+
+Best regards,
+The HomelyBites Team
+            """
+            
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],  # Send to NEW email
+                    fail_silently=False,
+                )
+            except Exception:
+                # Email sending failed, but email change was successful
+                pass
+            
+            # Redirect to frontend with success message
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+            redirect_url = f"{frontend_url}/profile?message=Email changed successfully from {old_email} to {user.email}!"
+            return HttpResponseRedirect(redirect_url)
+        else:
+            # No pending email change
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+            redirect_url = f"{frontend_url}/profile?error=No pending email change request found."
+            return HttpResponseRedirect(redirect_url)
+    else:
+        # Invalid or expired token
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+        redirect_url = f"{frontend_url}/profile?error=Invalid or expired verification link. Please try updating your email again."
         return HttpResponseRedirect(redirect_url)
 

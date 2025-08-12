@@ -39,6 +39,7 @@ class Recipe(models.Model):
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     password_reset_token = models.CharField(max_length=100, null=True, blank=True)
+    pending_email = models.EmailField(null=True, blank=True, help_text='New email address pending verification')
 
     class Meta:
         app_label = 'recipes'

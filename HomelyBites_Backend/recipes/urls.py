@@ -15,6 +15,7 @@ router.register(r'user-profiles', views.UserProfileViewSet)
 urlpatterns = [
     path('user-profiles/my_profile/', views.my_profile, name='my_profile'),
     path('user-profiles/update/', views.update_user_profile, name='update_user_profile'),
+    path('verify-email-change/<uidb64>/<token>/', views.verify_email_change_link, name='verify_email_change_link'),
     path('', include(router.urls)),
     path('register/', views.register_user, name='register'),
     path('login/', views.login_user, name='login'),

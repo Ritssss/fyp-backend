@@ -178,3 +178,5 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "Password fields didn't match."})
         return attrs
+
+
